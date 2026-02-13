@@ -793,7 +793,8 @@ function redactSecrets(text) {
     .replace(/(sk-[A-Za-z0-9_-]{10,})/g, "[REDACTED]")
     .replace(/(gho_[A-Za-z0-9_]{10,})/g, "[REDACTED]")
     .replace(/(xox[baprs]-[A-Za-z0-9-]{10,})/g, "[REDACTED]")
-    .replace(/(AA[A-Za-z0-9_-]{10,}:\S{10,})/g, "[REDACTED]");
+    .replace(/(AA[A-Za-z0-9_-]{10,}:\S{10,})/g, "[REDACTED]")
+    .replace(/(lin_api_[A-Za-z0-9_-]{10,})/g, "[REDACTED]");
 }
 
 const ALLOWED_CONSOLE_COMMANDS = new Set([

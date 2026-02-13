@@ -64,6 +64,9 @@ RUN useradd --create-home --shell /bin/bash openclaw \
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
 
+# Linear CLI (linearis) — allows OpenClaw to interact with Linear via CLI
+RUN npm install -g linearis
+
 WORKDIR /app
 
 # Wrapper deps
