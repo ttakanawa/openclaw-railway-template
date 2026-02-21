@@ -230,6 +230,33 @@ async function runDoctorBestEffort() {
   }
 }
 
+// Ensure gateway.trustedProxies is set in config before starting the gateway.
+// Railway runs behind a reverse proxy, so the wrapper (127.0.0.1) must be trusted
+// for local client detection to work. Without this, the gateway rejects WebSocket
+// connections with "unauthorized...token_missing" because X-Forwarded-* headers
+// from an untrusted source cause the connection to be treated as non-local.
+async function ensureTrustedProxiesInConfig() {
+  try {
+    const cfgFile = configPath();
+    if (!fs.existsSync(cfgFile)) return;
+
+    const raw = fs.readFileSync(cfgFile, "utf8");
+    // Quick heuristic: skip if trustedProxies is already present in the config.
+    // Use quoted key to avoid false positives from JSON5 comments.
+    if (raw.includes('"trustedProxies"')) return;
+
+    const result = await runCmd(
+      OPENCLAW_NODE,
+      clawArgs(["config", "set", "--json", "gateway.trustedProxies", JSON.stringify(["127.0.0.1"])]),
+    );
+    if (result.code !== 0) {
+      console.warn(`[trustedProxies] config set failed (code=${result.code}): ${result.output}`);
+    }
+  } catch {
+    // best-effort; don't block gateway start
+  }
+}
+
 async function ensureGatewayRunning() {
   if (!isConfigured()) return { ok: false, reason: "not configured" };
   if (gatewayProc) return { ok: true };
@@ -237,6 +264,7 @@ async function ensureGatewayRunning() {
     gatewayStarting = (async () => {
       try {
         lastGatewayError = null;
+        await ensureTrustedProxiesInConfig();
         await startGateway();
         const ready = await waitForGatewayReady({ timeoutMs: 60_000 });
         if (!ready) {
