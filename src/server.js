@@ -322,7 +322,10 @@ function requireSetupAuth(req, res, next) {
 
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "1mb" }));
+// Only parse JSON for /setup routes. Global body parsing would consume the
+// request stream before http-proxy can forward it to the gateway, breaking
+// webhook endpoints like POST /line/webhook.
+app.use("/setup", express.json({ limit: "1mb" }));
 
 // Minimal health endpoint for Railway.
 app.get("/setup/healthz", (_req, res) => res.json({ ok: true }));
