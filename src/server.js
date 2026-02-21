@@ -1340,8 +1340,8 @@ const proxy = httpProxy.createProxyServer({
   xfwd: true,
 });
 
-proxy.on("error", (err, _req, res) => {
-  console.error("[proxy]", err);
+proxy.on("error", (err, req, res) => {
+  console.error(`[proxy] ${req?.method} ${req?.url}`, err);
   try {
     if (res && typeof res.writeHead === "function" && !res.headersSent) {
       res.writeHead(502, { "Content-Type": "text/plain" });
