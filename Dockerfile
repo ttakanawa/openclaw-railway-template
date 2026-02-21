@@ -22,7 +22,7 @@ WORKDIR /openclaw
 
 # Pin to a known-good ref (tag/branch). Override in Railway template settings if needed.
 # Using a released tag avoids build breakage when `main` temporarily references unpublished packages.
-ARG OPENCLAW_GIT_REF=v2026.2.17
+ARG OPENCLAW_GIT_REF=v2026.2.19
 RUN git clone --depth 1 --branch "${OPENCLAW_GIT_REF}" https://github.com/openclaw/openclaw.git .
 
 # Patch: relax version requirements for packages that may reference unpublished versions.
@@ -46,6 +46,9 @@ ENV NODE_ENV=production
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
+    tini \
+    python3 \
+    python3-venv \
     curl \
     gosu \
   && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
@@ -63,6 +66,15 @@ RUN useradd --create-home --shell /bin/bash openclaw \
 
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
+
+# Persist user-installed tools by default by targeting the Railway volume.
+# - npm global installs -> /data/npm
+# - pnpm global installs -> /data/pnpm (binaries) + /data/pnpm-store (store)
+ENV NPM_CONFIG_PREFIX=/data/npm
+ENV NPM_CONFIG_CACHE=/data/npm-cache
+ENV PNPM_HOME=/data/pnpm
+ENV PNPM_STORE_DIR=/data/pnpm-store
+ENV PATH="/data/npm/bin:/data/pnpm:${PATH}"
 
 # Linear CLI (linearis) — allows OpenClaw to interact with Linear via CLI
 RUN npm install -g linearis
@@ -82,10 +94,13 @@ RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"'
 
 COPY src ./src
 
-# The wrapper listens on this port.
-ENV OPENCLAW_PUBLIC_PORT=8080
-ENV PORT=8080
+# The wrapper listens on $PORT.
+# IMPORTANT: Do not set a default PORT here.
+# Railway injects PORT at runtime and routes traffic to that port.
+# If we force a different port, deployments can come up but the domain will route elsewhere.
 EXPOSE 8080
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+
+# tini as PID 1 for zombie reaping + signal forwarding; entrypoint.sh handles /data ownership + user drop.
+ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
 CMD ["node", "src/server.js"]
