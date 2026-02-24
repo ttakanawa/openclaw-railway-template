@@ -7,4 +7,4 @@ healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 
 # Require a persistent volume mounted at OpenClaw's default state dir (~/.openclaw).
-requiredMountPath = "/home/openclaw/.openclaw"
+requiredMountPath = "/home/node/.openclaw"
