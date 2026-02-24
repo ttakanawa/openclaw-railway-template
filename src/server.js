@@ -393,7 +393,7 @@ app.get("/setup", requireSetupAuth, (_req, res) => {
     </div>
 
     <div style="margin-top: 0.75rem">
-      <div class="muted" style="margin-bottom:0.25rem"><strong>Import backup</strong> (advanced): restores into <code>/data</code> and restarts the gateway.</div>
+      <div class="muted" style="margin-bottom:0.25rem"><strong>Import backup</strong> (advanced): restores into the state directory and restarts the gateway.</div>
       <input id="importFile" type="file" accept=".tar.gz,application/gzip" />
       <button id="importRun" style="background:#7c2d12; margin-top:0.5rem">Import</button>
       <pre id="importOut" style="white-space:pre-wrap"></pre>
@@ -1205,24 +1205,22 @@ app.get("/setup/export", requireSetupAuth, async (_req, res) => {
     `attachment; filename="openclaw-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.tar.gz"`,
   );
 
-  // Prefer exporting from a common /data root so archives are easy to inspect and restore.
-  // This preserves dotfiles like /data/.openclaw/openclaw.json.
+  // Export relative to STATE_DIR so the archive contains workspace/... etc.
   const stateAbs = path.resolve(STATE_DIR);
   const workspaceAbs = path.resolve(WORKSPACE_DIR);
 
-  const dataRoot = "/data";
-  const underData = (p) => p === dataRoot || p.startsWith(dataRoot + path.sep);
+  let cwd, paths;
 
-  let cwd = "/";
-  let paths = [stateAbs, workspaceAbs].map((p) => p.replace(/^\//, ""));
-
-  if (underData(stateAbs) && underData(workspaceAbs)) {
-    cwd = dataRoot;
-    // We export relative to /data so the archive contains: .openclaw/... and workspace/...
-    paths = [
-      path.relative(dataRoot, stateAbs) || ".",
-      path.relative(dataRoot, workspaceAbs) || ".",
-    ];
+  if (isUnderDir(workspaceAbs, stateAbs)) {
+    // workspace is inside STATE_DIR — "." covers both
+    cwd = stateAbs;
+    paths = ["."];
+  } else {
+    // workspace lives outside STATE_DIR — include both roots.
+    // NOTE: archives produced here use absolute-ish paths and cannot be restored
+    // via /setup/import (which only supports workspace under STATE_DIR).
+    cwd = "/";
+    paths = [stateAbs, workspaceAbs].map((p) => p.replace(/^\//, ""));
   }
 
   const stream = tar.c(
@@ -1281,15 +1279,14 @@ async function readBodyBuffer(req, maxBytes) {
 }
 
 // Import a backup created by /setup/export.
-// This is intentionally limited to restoring into /data to avoid overwriting arbitrary host paths.
+// Restores into STATE_DIR (the volume mount point) to avoid overwriting arbitrary host paths.
 app.post("/setup/import", requireSetupAuth, async (req, res) => {
   try {
-    const dataRoot = "/data";
-    if (!isUnderDir(STATE_DIR, dataRoot) || !isUnderDir(WORKSPACE_DIR, dataRoot)) {
+    if (!isUnderDir(WORKSPACE_DIR, STATE_DIR)) {
       return res
         .status(400)
         .type("text/plain")
-        .send("Import is only supported when OPENCLAW_STATE_DIR and OPENCLAW_WORKSPACE_DIR are under /data (Railway volume).\n");
+        .send("Import is only supported when OPENCLAW_WORKSPACE_DIR is under OPENCLAW_STATE_DIR.\n");
     }
 
     // Stop gateway before restore so we don't overwrite live files.
@@ -1302,7 +1299,7 @@ app.post("/setup/import", requireSetupAuth, async (req, res) => {
     const buf = await readBodyBuffer(req, 250 * 1024 * 1024); // 250MB max
     if (!buf.length) return res.status(400).type("text/plain").send("Empty body\n");
 
-    // Extract into /data.
+    // Extract into STATE_DIR.
     // We only allow safe relative paths, and we intentionally do NOT delete existing files.
     // (Users can reset/redeploy or manually clean the volume if desired.)
     const tmpPath = path.join(os.tmpdir(), `openclaw-import-${Date.now()}.tar.gz`);
@@ -1310,7 +1307,7 @@ app.post("/setup/import", requireSetupAuth, async (req, res) => {
 
     await tar.x({
       file: tmpPath,
-      cwd: dataRoot,
+      cwd: STATE_DIR,
       gzip: true,
       strict: true,
       onwarn: () => { },
@@ -1327,7 +1324,7 @@ app.post("/setup/import", requireSetupAuth, async (req, res) => {
       await restartGateway();
     }
 
-    res.type("text/plain").send("OK - imported backup into /data and restarted gateway.\n");
+    res.type("text/plain").send(`OK - imported backup into ${STATE_DIR} and restarted gateway.\n`);
   } catch (err) {
     console.error("[import]", err);
     res.status(500).type("text/plain").send(String(err));

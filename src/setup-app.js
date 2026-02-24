@@ -249,7 +249,7 @@
       alert('Pick a .tar.gz file first');
       return;
     }
-    if (!confirm('Import backup? This overwrites files under /data and restarts the gateway.')) return;
+    if (!confirm('Import backup? This overwrites files in the state directory and restarts the gateway.')) return;
 
     if (importOutEl) importOutEl.textContent = 'Uploading ' + f.name + ' (' + f.size + ' bytes)...\n';
 
