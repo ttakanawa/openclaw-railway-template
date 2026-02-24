@@ -22,15 +22,11 @@ This repo packages **OpenClaw** for Railway with a small **/setup** web wizard s
 In Railway Template Composer:
 
 1) Create a new template from this GitHub repo.
-2) Add a **Volume** mounted at `/data`.
+2) Add a **Volume** mounted at `/home/node/.openclaw`.
 3) Set the following variables:
 
 Required:
 - `SETUP_PASSWORD` — user-provided password to access `/setup` and the Control UI (`/openclaw`) via HTTP Basic auth
-
-Recommended:
-- `OPENCLAW_STATE_DIR=/data/.openclaw`
-- `OPENCLAW_WORKSPACE_DIR=/data/workspace`
 
 Optional:
 - `OPENCLAW_GATEWAY_TOKEN` — if not set, the wrapper generates one (not ideal). In a template, set it using a generated secret.
@@ -136,9 +132,7 @@ Fix:
 Most often this means the wrapper is up, but the gateway can’t start or can’t bind.
 
 Checklist:
-- Ensure you mounted a **Volume** at `/data` and set:
-  - `OPENCLAW_STATE_DIR=/data/.openclaw`
-  - `OPENCLAW_WORKSPACE_DIR=/data/workspace`
+- Ensure you mounted a **Volume** at `/home/node/.openclaw`.
 - Ensure **Public Networking** is enabled (Railway will inject `PORT`).
 - Check Railway logs for the wrapper error: it will show `Gateway not ready:` with the reason.
 
@@ -165,9 +159,7 @@ docker build -t clawdbot-railway-template .
 docker run --rm -p 8080:8080 \
   -e PORT=8080 \
   -e SETUP_PASSWORD=test \
-  -e OPENCLAW_STATE_DIR=/data/.openclaw \
-  -e OPENCLAW_WORKSPACE_DIR=/data/workspace \
-  -v $(pwd)/.tmpdata:/data \
+  -v $(pwd)/.tmpdata:/home/node/.openclaw \
   clawdbot-railway-template
 
 # open http://localhost:8080/setup (password: test)

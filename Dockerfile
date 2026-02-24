@@ -61,8 +61,8 @@ RUN apt-get update \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
-RUN useradd --create-home --shell /bin/bash openclaw \
-  && mkdir -p /data
+RUN mkdir -p /home/node/.openclaw \
+  && chown node:node /home/node/.openclaw
 
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
