@@ -22,7 +22,7 @@ This repo packages **OpenClaw** for Railway with a small **/setup** web wizard s
 In Railway Template Composer:
 
 1) Create a new template from this GitHub repo.
-2) Add a **Volume** mounted at `/home/openclaw/.openclaw`.
+2) Add a **Volume** mounted at `/home/node/.openclaw`.
 3) Set the following variables:
 
 Required:
@@ -92,7 +92,7 @@ Fix:
 Most often this means the wrapper is up, but the gateway can’t start or can’t bind.
 
 Checklist:
-- Ensure you mounted a **Volume** at `/home/openclaw/.openclaw`.
+- Ensure you mounted a **Volume** at `/home/node/.openclaw`.
 - Ensure **Public Networking** is enabled (Railway will inject `PORT`).
 - Check Railway logs for the wrapper error: it will show `Gateway not ready:` with the reason.
 
@@ -112,7 +112,7 @@ docker build -t clawdbot-railway-template .
 docker run --rm -p 3000:3000 \
   -e PORT=3000 \
   -e SETUP_PASSWORD=test \
-  -v $(pwd)/.tmpdata:/home/openclaw/.openclaw \
+  -v $(pwd)/.tmpdata:/home/node/.openclaw \
   clawdbot-railway-template
 
 # open http://localhost:3000/setup (password: test)
