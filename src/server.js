@@ -1006,7 +1006,8 @@ function redactSecrets(text) {
     // Telegram bot tokens look like: 123456:ABCDEF...
     .replace(/(\d{5,}:[A-Za-z0-9_-]{10,})/g, "[REDACTED]")
     .replace(/(AA[A-Za-z0-9_-]{10,}:\S{10,})/g, "[REDACTED]")
-    .replace(/(lin_api_[A-Za-z0-9_-]{10,})/g, "[REDACTED]");
+    .replace(/(lin_api_[A-Za-z0-9_-]{10,})/g, "[REDACTED]")
+    .replace(/ewogI[A-Za-z0-9+/=\s]+/g, "[REDACTED]");
 }
 
 function extractDeviceRequestIds(text) {
