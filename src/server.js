@@ -1007,7 +1007,10 @@ function redactSecrets(text) {
     .replace(/(\d{5,}:[A-Za-z0-9_-]{10,})/g, "[REDACTED]")
     .replace(/(AA[A-Za-z0-9_-]{10,}:\S{10,})/g, "[REDACTED]")
     .replace(/(lin_api_[A-Za-z0-9_-]{10,})/g, "[REDACTED]")
-    .replace(/ewogI[A-Za-z0-9+/=\s]+/g, "[REDACTED]");
+    .replace(/fc3e[A-Za-z0-9+/=\s]+/g, "[REDACTED]")
+    .replace(/a97c[A-Za-z0-9+/=\s]+/g, "[REDACTED]")
+    .replace(/4rY[A-Za-z0-9+/=\s]+/g, "[REDACTED]")
+    .replace(/E08[A-Za-z0-9+/=\s]+/g, "[REDACTED]");
 }
 
 function extractDeviceRequestIds(text) {
